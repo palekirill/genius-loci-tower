@@ -61,6 +61,9 @@ class PointAndClickGame {
         this.preparingVideo36 = false;  // Preparing state for video36
         this.showingVideo36 = false;  // State for video36
         this.introShown = false;  // Show intro overlay for video1
+        // Loading progress counters
+        this.totalAssets = 0;
+        this.loadedAssets = 0;
         this.assets = {
             image1: null,    // Background for video1
             video1: null,    // Looping video for first location
@@ -365,6 +368,7 @@ class PointAndClickGame {
                 const duration = 500;
                 const scrambleChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789[]{}()+-/*=<>!?@#$%^&*';
                 const start = performance.now();
+                // Keep fixed width during entire loading to avoid jitter when appending percentage
                 const originalWhiteSpace = el.style.whiteSpace;
                 const originalWidth = el.style.width;
                 const originalBoxSizing = el.style.boxSizing;
@@ -374,7 +378,8 @@ class PointAndClickGame {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 if (ctx && font) ctx.font = font;
-                const measured = ctx ? ctx.measureText(targetText).width : 0;
+                // Measure with max content including percentage
+                const measured = ctx ? ctx.measureText('loading assets... 100%').width : 0;
                 el.style.whiteSpace = 'pre';
                 el.style.boxSizing = 'content-box';
                 if (measured > 0) el.style.width = Math.ceil(measured) + 'px';
@@ -396,10 +401,7 @@ class PointAndClickGame {
                         rafId = requestAnimationFrame(tick);
                     } else {
                         el.textContent = targetText;
-                        // restore
-                        el.style.whiteSpace = originalWhiteSpace;
-                        el.style.width = originalWidth;
-                        el.style.boxSizing = originalBoxSizing;
+                        // Do NOT restore styles here; keep fixed width until all assets loaded
                     }
                 };
                 requestAnimationFrame(tick);
@@ -489,6 +491,8 @@ class PointAndClickGame {
     
     loadVideo(src) {
         return new Promise((resolve, reject) => {
+            // Count asset for progress
+            this.totalAssets += 1;
             const video = document.createElement('video');
             video.src = src;
             // Enable looping for video1, video3, video5, video7, video9, video11, video13, video15, video17, video20, video23, video25, video29, video32 and video35
@@ -499,10 +503,14 @@ class PointAndClickGame {
             
             video.addEventListener('canplaythrough', () => {
                 console.log(`Video fully loaded: ${src}`);
+                this.loadedAssets += 1;
+                this.updateLoadingProgress();
                 resolve(video);
             });
             
             video.addEventListener('error', () => {
+                this.loadedAssets += 1; // still advance progress on error
+                this.updateLoadingProgress();
                 reject(new Error(`Failed to load video: ${src}`));
             });
             
@@ -512,15 +520,21 @@ class PointAndClickGame {
     
     loadImage(src) {
         return new Promise((resolve, reject) => {
+            // Count asset for progress
+            this.totalAssets += 1;
             const img = new Image();
             img.src = src;
             
             img.addEventListener('load', () => {
                 console.log(`Image loaded: ${src}`);
+                this.loadedAssets += 1;
+                this.updateLoadingProgress();
                 resolve(img);
             });
             
             img.addEventListener('error', () => {
+                this.loadedAssets += 1;
+                this.updateLoadingProgress();
                 reject(new Error(`Failed to load image: ${src}`));
             });
         });
@@ -552,6 +566,7 @@ class PointAndClickGame {
     loadAudio(src) {
         return new Promise((resolve, reject) => {
             console.log(`Loading audio: ${src}`);
+            this.totalAssets += 1;
             const audio = new Audio(src);
             audio.loop = true;
             audio.preload = 'auto';
@@ -564,12 +579,16 @@ class PointAndClickGame {
             audio.addEventListener('canplay', () => console.log('Audio: can play'));
             audio.addEventListener('canplaythrough', () => {
                 console.log('Audio loaded successfully and ready to play');
+                this.loadedAssets += 1;
+                this.updateLoadingProgress();
                 resolve(audio);
             });
             
             audio.addEventListener('error', (e) => {
                 console.error('Audio loading error:', e);
                 console.error('Error details:', audio.error);
+                this.loadedAssets += 1;
+                this.updateLoadingProgress();
                 reject(new Error(`Failed to load audio: ${src}`));
             });
             
@@ -588,6 +607,13 @@ class PointAndClickGame {
         
         // Start game loop
         this.gameLoop();
+    }
+
+    updateLoadingProgress() {
+        if (!this.loading) return;
+        if (this.totalAssets === 0) return;
+        const percent = Math.max(0, Math.min(100, Math.floor((this.loadedAssets / this.totalAssets) * 100)));
+        this.loading.textContent = `loading assets... ${percent}%`;
     }
 
     maybeShowIntroOverlay() {
