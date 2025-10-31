@@ -64,6 +64,7 @@ class PointAndClickGame {
         // Loading progress counters
         this.totalAssets = 0;
         this.loadedAssets = 0;
+        this.loadingCallsFinished = false; // set true after all load calls scheduled
         this.assets = {
             image1: null,    // Background for video1
             video1: null,    // Looping video for first location
@@ -361,6 +362,8 @@ class PointAndClickGame {
     
     async loadAssets() {
         try {
+            this.isLoading = true;
+            this.loadingCallsFinished = false;
             // Short scramble animation for loading text (0.5s)
             if (this.loading) {
                 const el = this.loading;
@@ -473,8 +476,12 @@ class PointAndClickGame {
                 this.assets.audio1 = null;
             }
             
+            // Mark load scheduling finished and set progress to 100
+            this.loadingCallsFinished = true;
+            this.updateLoadingProgress();
             // Hide loading screen
             this.loading.style.display = 'none';
+            this.isLoading = false;
             
             // Start game
             this.startGame();
@@ -612,7 +619,10 @@ class PointAndClickGame {
     updateLoadingProgress() {
         if (!this.loading) return;
         if (this.totalAssets === 0) return;
-        const percent = Math.max(0, Math.min(100, Math.floor((this.loadedAssets / this.totalAssets) * 100)));
+        let percent = Math.max(0, Math.min(100, Math.floor((this.loadedAssets / this.totalAssets) * 100)));
+        if (!this.loadingCallsFinished) {
+            percent = Math.min(percent, 99);
+        }
         this.loading.textContent = `loading assets... ${percent}%`;
     }
 
@@ -755,8 +765,8 @@ class PointAndClickGame {
     }
     
     handleClick(x, y) {
-        // Prevent clicks during any transitions
-        if (this.isTransitioning || this.preparingVideo4 || this.preparingVideo6 || this.preparingVideo8 || this.preparingVideo10 || this.preparingVideo12 || this.preparingVideo14 || this.preparingVideo16 || this.preparingVideo18 || this.preparingVideo19 || this.preparingVideo21 || this.preparingVideo22 || this.preparingVideo24 || this.preparingVideo26 || this.preparingVideo27 || this.preparingVideo28 || this.preparingVideo30 || this.preparingVideo31 || this.preparingVideo33 || this.preparingVideo34 || this.preparingVideo36) {
+        // Prevent clicks while loading or during any transitions
+        if (this.isLoading || this.isTransitioning || this.preparingVideo4 || this.preparingVideo6 || this.preparingVideo8 || this.preparingVideo10 || this.preparingVideo12 || this.preparingVideo14 || this.preparingVideo16 || this.preparingVideo18 || this.preparingVideo19 || this.preparingVideo21 || this.preparingVideo22 || this.preparingVideo24 || this.preparingVideo26 || this.preparingVideo27 || this.preparingVideo28 || this.preparingVideo30 || this.preparingVideo31 || this.preparingVideo33 || this.preparingVideo34 || this.preparingVideo36) {
             console.log('Click blocked - transition in progress');
             return;
         }
