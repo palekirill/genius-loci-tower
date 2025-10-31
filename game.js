@@ -64,6 +64,8 @@ class PointAndClickGame {
         // Loading progress counters
         this.totalAssets = 0;
         this.loadedAssets = 0;
+        this.totalCriticalAssets = 0; // only for batch 1 (critical path)
+        this.loadedCriticalAssets = 0;
         this.loadingCallsFinished = false; // set true after all load calls scheduled
         this.assets = {
             image1: null,    // Background for video1
@@ -409,82 +411,91 @@ class PointAndClickGame {
                 };
                 requestAnimationFrame(tick);
             }
-            // Load images and videos
-            this.assets.image1 = await this.loadImage('image/image1.png');
-            this.assets.video1 = await this.loadVideo('video/video1.mp4');
-            this.assets.video2 = await this.loadVideo('video/video2.mp4');
-            this.assets.image2 = await this.loadImage('image/image2.png');
-            this.assets.video3 = await this.loadVideo('video/video3.mp4');
-            this.assets.video4 = await this.loadVideo('video/video4.mp4');
-            this.assets.video5 = await this.loadVideo('video/video5.mp4');
-            this.assets.image3 = await this.loadImage('image/image3.png');
-            this.assets.video6 = await this.loadVideo('video/video6.mp4');
-            this.assets.video7 = await this.loadVideo('video/video7.mp4');
-            this.assets.image4 = await this.loadImage('image/image4.png');
-            this.assets.video8 = await this.loadVideo('video/video8.mp4');
-            this.assets.video9 = await this.loadVideo('video/video9.mp4');
-            this.assets.image5 = await this.loadImage('image/image5.png');
-            this.assets.video10 = await this.loadVideo('video/video10.mp4');
-            this.assets.video11 = await this.loadVideo('video/video11.mp4');
-            this.assets.image6 = await this.loadImage('image/image6.png');
-            this.assets.video12 = await this.loadVideo('video/video12.mp4');
-            this.assets.video13 = await this.loadVideo('video/video13.mp4');
-            this.assets.image7 = await this.loadImage('image/image7.png');
-            this.assets.video14 = await this.loadVideo('video/video14.mp4');
-            this.assets.video15 = await this.loadVideo('video/video15.mp4');
-            this.assets.image8 = await this.loadImage('image/image8.png');
-            this.assets.video16 = await this.loadVideo('video/video16.mp4');
-            this.assets.video17 = await this.loadVideo('video/video17.mp4');
-            this.assets.image9 = await this.loadImage('image/image9.png');
-            this.assets.video18 = await this.loadVideo('video/video18.mp4');
-            this.assets.video19 = await this.loadVideo('video/video19.mp4');
-            this.assets.video20 = await this.loadVideo('video/video20.mp4');
-            this.assets.image10 = await this.loadImage('image/image10.png');
-            this.assets.video21 = await this.loadVideo('video/video21.mp4');
-            this.assets.video22 = await this.loadVideo('video/video22.mp4');
-            this.assets.video23 = await this.loadVideo('video/video23.mp4');
-            this.assets.image11 = await this.loadImage('image/image11.png');
-            this.assets.video24 = await this.loadVideo('video/video24.mp4');
-            this.assets.video25 = await this.loadVideo('video/video25.mp4');
-            this.assets.image12 = await this.loadImage('image/image12.png');
-            this.assets.video26 = await this.loadVideo('video/video26.mp4');
-            this.assets.video27 = await this.loadVideo('video/video27.mp4');
-            this.assets.video28 = await this.loadVideo('video/video28.mp4');
-            this.assets.video29 = await this.loadVideo('video/video29.mp4');
-            this.assets.image13 = await this.loadImage('image/image13.png');
-            this.assets.video30 = await this.loadVideo('video/video30.mp4');
-            this.assets.video31 = await this.loadVideo('video/video31.mp4');
-            this.assets.video32 = await this.loadVideo('video/video32.mp4');
-            this.assets.image14 = await this.loadImage('image/image14.png');
-            this.assets.video33 = await this.loadVideo('video/video33.mp4');
-            this.assets.video34 = await this.loadVideo('video/video34.mp4');
-            // image15 may be missing — use safe fallback
-            try {
-                this.assets.image15 = await this.loadImage('image/image15.png');
-            } catch (e) {
-                console.warn('image15 not found, falling back to image14 as background for video35');
-                this.assets.image15 = this.assets.image14;
-            }
-            this.assets.video35 = await this.loadVideo('video/video35.mp4');
-            this.assets.video36 = await this.loadVideo('video/video36.mp4');
+            // BATCH 1: Critical assets (must load before game starts)
+            console.log('Loading batch 1: critical assets...');
+            this.assets.image1 = await this.loadImage('image/image1.png', true);
+            this.assets.video1 = await this.loadVideo('video/video1.mp4', true);
             
-            // Load audio (not critical for game operation)
-            try {
-                this.assets.audio1 = await this.loadAudio('audio/audio1.mp3');
-            } catch (audioError) {
-                console.warn('Audio not loaded, game will continue without sound:', audioError);
-                this.assets.audio1 = null;
-            }
-            
-            // Mark load scheduling finished and set progress to 100
+            // Mark critical loading finished and show 100%, then hide loading screen
             this.loadingCallsFinished = true;
-            this.updateLoadingProgress();
+            this.updateLoadingProgress(); // Should show 100% now
             // Hide loading screen
             this.loading.style.display = 'none';
             this.isLoading = false;
             
-            // Start game
+            // Start game immediately after batch 1
             this.startGame();
+            
+            // BATCH 2: Near-future assets (possible next transitions) - load in background
+            console.log('Loading batch 2: near-future assets (background)...');
+            this.loadBackgroundBatch([
+                () => this.loadVideo('video/video2.mp4').then(v => { this.assets.video2 = v; }),
+                () => this.loadImage('image/image2.png').then(img => { this.assets.image2 = img; }),
+                () => this.loadVideo('video/video3.mp4').then(v => { this.assets.video3 = v; }),
+            ]);
+            
+            // BATCH 3: All remaining assets - load in background
+            console.log('Loading batch 3: remaining assets (background)...');
+            this.loadBackgroundBatch([
+                () => this.loadVideo('video/video4.mp4').then(v => { this.assets.video4 = v; }),
+                () => this.loadVideo('video/video5.mp4').then(v => { this.assets.video5 = v; }),
+                () => this.loadImage('image/image3.png').then(img => { this.assets.image3 = img; }),
+                () => this.loadVideo('video/video6.mp4').then(v => { this.assets.video6 = v; }),
+                () => this.loadVideo('video/video7.mp4').then(v => { this.assets.video7 = v; }),
+                () => this.loadImage('image/image4.png').then(img => { this.assets.image4 = img; }),
+                () => this.loadVideo('video/video8.mp4').then(v => { this.assets.video8 = v; }),
+                () => this.loadVideo('video/video9.mp4').then(v => { this.assets.video9 = v; }),
+                () => this.loadImage('image/image5.png').then(img => { this.assets.image5 = img; }),
+                () => this.loadVideo('video/video10.mp4').then(v => { this.assets.video10 = v; }),
+                () => this.loadVideo('video/video11.mp4').then(v => { this.assets.video11 = v; }),
+                () => this.loadImage('image/image6.png').then(img => { this.assets.image6 = img; }),
+                () => this.loadVideo('video/video12.mp4').then(v => { this.assets.video12 = v; }),
+                () => this.loadVideo('video/video13.mp4').then(v => { this.assets.video13 = v; }),
+                () => this.loadImage('image/image7.png').then(img => { this.assets.image7 = img; }),
+                () => this.loadVideo('video/video14.mp4').then(v => { this.assets.video14 = v; }),
+                () => this.loadVideo('video/video15.mp4').then(v => { this.assets.video15 = v; }),
+                () => this.loadImage('image/image8.png').then(img => { this.assets.image8 = img; }),
+                () => this.loadVideo('video/video16.mp4').then(v => { this.assets.video16 = v; }),
+                () => this.loadVideo('video/video17.mp4').then(v => { this.assets.video17 = v; }),
+                () => this.loadImage('image/image9.png').then(img => { this.assets.image9 = img; }),
+                () => this.loadVideo('video/video18.mp4').then(v => { this.assets.video18 = v; }),
+                () => this.loadVideo('video/video19.mp4').then(v => { this.assets.video19 = v; }),
+                () => this.loadVideo('video/video20.mp4').then(v => { this.assets.video20 = v; }),
+                () => this.loadImage('image/image10.png').then(img => { this.assets.image10 = img; }),
+                () => this.loadVideo('video/video21.mp4').then(v => { this.assets.video21 = v; }),
+                () => this.loadVideo('video/video22.mp4').then(v => { this.assets.video22 = v; }),
+                () => this.loadVideo('video/video23.mp4').then(v => { this.assets.video23 = v; }),
+                () => this.loadImage('image/image11.png').then(img => { this.assets.image11 = img; }),
+                () => this.loadVideo('video/video24.mp4').then(v => { this.assets.video24 = v; }),
+                () => this.loadVideo('video/video25.mp4').then(v => { this.assets.video25 = v; }),
+                () => this.loadImage('image/image12.png').then(img => { this.assets.image12 = img; }),
+                () => this.loadVideo('video/video26.mp4').then(v => { this.assets.video26 = v; }),
+                () => this.loadVideo('video/video27.mp4').then(v => { this.assets.video27 = v; }),
+                () => this.loadVideo('video/video28.mp4').then(v => { this.assets.video28 = v; }),
+                () => this.loadVideo('video/video29.mp4').then(v => { this.assets.video29 = v; }),
+                () => this.loadImage('image/image13.png').then(img => { this.assets.image13 = img; }),
+                () => this.loadVideo('video/video30.mp4').then(v => { this.assets.video30 = v; }),
+                () => this.loadVideo('video/video31.mp4').then(v => { this.assets.video31 = v; }),
+                () => this.loadVideo('video/video32.mp4').then(v => { this.assets.video32 = v; }),
+                () => this.loadImage('image/image14.png').then(img => { this.assets.image14 = img; }),
+                () => this.loadVideo('video/video33.mp4').then(v => { this.assets.video33 = v; }),
+                () => this.loadVideo('video/video34.mp4').then(v => { this.assets.video34 = v; }),
+                () => this.loadImage('image/image15.png').then(img => { this.assets.image15 = img; }).catch(e => {
+                    console.warn('image15 not found, falling back to image14 as background for video35');
+                    this.assets.image15 = this.assets.image14;
+                }),
+                () => this.loadVideo('video/video35.mp4').then(v => { this.assets.video35 = v; }),
+                () => this.loadVideo('video/video36.mp4').then(v => { this.assets.video36 = v; }),
+            ]);
+            
+            // Load audio in background (not critical for game operation)
+            this.loadBackgroundBatch([
+                () => this.loadAudio('audio/audio1.mp3').then(audio => { this.assets.audio1 = audio; }).catch(audioError => {
+                    console.warn('Audio not loaded, game will continue without sound:', audioError);
+                    this.assets.audio1 = null;
+                    return null;
+                })
+            ]);
             
         } catch (error) {
             console.error('Resource loading error:', error);
@@ -496,10 +507,13 @@ class PointAndClickGame {
         }
     }
     
-    loadVideo(src) {
+    loadVideo(src, isCritical = false) {
         return new Promise((resolve, reject) => {
             // Count asset for progress
             this.totalAssets += 1;
+            if (isCritical) {
+                this.totalCriticalAssets += 1;
+            }
             const video = document.createElement('video');
             video.src = src;
             // Enable looping for video1, video3, video5, video7, video9, video11, video13, video15, video17, video20, video23, video25, video29, video32 and video35
@@ -511,12 +525,18 @@ class PointAndClickGame {
             video.addEventListener('canplaythrough', () => {
                 console.log(`Video fully loaded: ${src}`);
                 this.loadedAssets += 1;
+                if (isCritical) {
+                    this.loadedCriticalAssets += 1;
+                }
                 this.updateLoadingProgress();
                 resolve(video);
             });
             
             video.addEventListener('error', () => {
                 this.loadedAssets += 1; // still advance progress on error
+                if (isCritical) {
+                    this.loadedCriticalAssets += 1;
+                }
                 this.updateLoadingProgress();
                 reject(new Error(`Failed to load video: ${src}`));
             });
@@ -525,22 +545,31 @@ class PointAndClickGame {
         });
     }
     
-    loadImage(src) {
+    loadImage(src, isCritical = false) {
         return new Promise((resolve, reject) => {
             // Count asset for progress
             this.totalAssets += 1;
+            if (isCritical) {
+                this.totalCriticalAssets += 1;
+            }
             const img = new Image();
             img.src = src;
             
             img.addEventListener('load', () => {
                 console.log(`Image loaded: ${src}`);
                 this.loadedAssets += 1;
+                if (isCritical) {
+                    this.loadedCriticalAssets += 1;
+                }
                 this.updateLoadingProgress();
                 resolve(img);
             });
             
             img.addEventListener('error', () => {
                 this.loadedAssets += 1;
+                if (isCritical) {
+                    this.loadedCriticalAssets += 1;
+                }
                 this.updateLoadingProgress();
                 reject(new Error(`Failed to load image: ${src}`));
             });
@@ -584,20 +613,29 @@ class PointAndClickGame {
             audio.addEventListener('loadedmetadata', () => console.log('Audio: metadata loaded'));
             audio.addEventListener('loadeddata', () => console.log('Audio: data loaded'));
             audio.addEventListener('canplay', () => console.log('Audio: can play'));
-            audio.addEventListener('canplaythrough', () => {
+            let settled = false;
+            const settleOk = () => {
+                if (settled) return; settled = true;
                 console.log('Audio loaded successfully and ready to play');
                 this.loadedAssets += 1;
                 this.updateLoadingProgress();
                 resolve(audio);
-            });
-            
-            audio.addEventListener('error', (e) => {
+            };
+            const settleErr = (e) => {
+                if (settled) return; settled = true;
                 console.error('Audio loading error:', e);
                 console.error('Error details:', audio.error);
                 this.loadedAssets += 1;
                 this.updateLoadingProgress();
                 reject(new Error(`Failed to load audio: ${src}`));
-            });
+            };
+            audio.addEventListener('canplaythrough', settleOk, { once: true });
+            audio.addEventListener('loadeddata', settleOk, { once: true });
+            audio.addEventListener('error', settleErr, { once: true });
+            // Fallback timeout in case events don't fire due to browser policies
+            setTimeout(() => {
+                if (!settled) settleOk();
+            }, 3000);
             
             // Force load
             audio.load();
@@ -616,11 +654,48 @@ class PointAndClickGame {
         this.gameLoop();
     }
 
+    loadBackgroundBatch(loaders) {
+        // Load assets in background without blocking, with controlled concurrency
+        const maxConcurrent = 3; // Load up to 3 assets simultaneously
+        let currentIndex = 0;
+        
+        const loadNext = async () => {
+            while (currentIndex < loaders.length) {
+                const batch = [];
+                for (let i = 0; i < maxConcurrent && currentIndex < loaders.length; i++) {
+                    batch.push(loaders[currentIndex++]);
+                }
+                try {
+                    await Promise.allSettled(batch.map(loader => {
+                        const promise = loader();
+                        return promise.catch(e => {
+                            console.warn('Background asset failed:', e);
+                            return null;
+                        });
+                    }));
+                } catch (e) {
+                    console.warn('Background batch error:', e);
+                }
+                // Small delay to not saturate network
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        };
+        // Start background loading (don't await)
+        loadNext();
+    }
+
     updateLoadingProgress() {
         if (!this.loading) return;
-        if (this.totalAssets === 0) return;
-        let percent = Math.max(0, Math.min(100, Math.floor((this.loadedAssets / this.totalAssets) * 100)));
-        if (!this.loadingCallsFinished) {
+        // Use critical assets count for progress bar (batch 1 only)
+        const total = this.totalCriticalAssets > 0 ? this.totalCriticalAssets : this.totalAssets;
+        const loaded = this.totalCriticalAssets > 0 ? this.loadedCriticalAssets : this.loadedAssets;
+        if (total === 0) return;
+        let percent = Math.max(0, Math.min(100, Math.floor((loaded / total) * 100)));
+        if (!this.loadingCallsFinished && this.totalCriticalAssets > 0) {
+            // Still loading critical assets - show real progress up to 99%
+            percent = Math.min(percent, 99);
+        } else if (!this.loadingCallsFinished && this.totalCriticalAssets === 0) {
+            // Fallback: using total assets count
             percent = Math.min(percent, 99);
         }
         this.loading.innerHTML = `loading assets... <span style="color:#15FF00;">${percent}%</span>`;
