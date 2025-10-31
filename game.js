@@ -623,7 +623,7 @@ class PointAndClickGame {
         if (!this.loadingCallsFinished) {
             percent = Math.min(percent, 99);
         }
-        this.loading.textContent = `loading assets... ${percent}%`;
+        this.loading.innerHTML = `loading assets... <span style="color:#15FF00;">${percent}%</span>`;
     }
 
     maybeShowIntroOverlay() {
