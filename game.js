@@ -412,9 +412,23 @@ class PointAndClickGame {
                 requestAnimationFrame(tick);
             }
             // BATCH 1: Critical assets (must load before game starts)
+            // Includes: first location, transition, second location, and audio
             console.log('Loading batch 1: critical assets...');
             this.assets.image1 = await this.loadImage('image/image1.png', true);
             this.assets.video1 = await this.loadVideo('video/video1.mp4', true);
+            this.assets.video2 = await this.loadVideo('video/video2.mp4', true);
+            this.assets.image2 = await this.loadImage('image/image2.png', true);
+            this.assets.video3 = await this.loadVideo('video/video3.mp4', true);
+            // Audio also critical for first transition
+            try {
+                this.assets.audio1 = await this.loadAudio('audio/audio1.mp3', true);
+            } catch (audioError) {
+                console.warn('Audio not loaded, game will continue without sound:', audioError);
+                this.assets.audio1 = null;
+                // Still count it as loaded so progress moves forward
+                this.loadedCriticalAssets += 1;
+                this.updateLoadingProgress();
+            }
             
             // Mark critical loading finished and show 100%, then hide loading screen
             this.loadingCallsFinished = true;
@@ -426,16 +440,8 @@ class PointAndClickGame {
             // Start game immediately after batch 1
             this.startGame();
             
-            // BATCH 2: Near-future assets (possible next transitions) - load in background
-            console.log('Loading batch 2: near-future assets (background)...');
-            this.loadBackgroundBatch([
-                () => this.loadVideo('video/video2.mp4').then(v => { this.assets.video2 = v; }),
-                () => this.loadImage('image/image2.png').then(img => { this.assets.image2 = img; }),
-                () => this.loadVideo('video/video3.mp4').then(v => { this.assets.video3 = v; }),
-            ]);
-            
-            // BATCH 3: All remaining assets - load in background
-            console.log('Loading batch 3: remaining assets (background)...');
+            // BATCH 2: All remaining assets - load in background
+            console.log('Loading batch 2: remaining assets (background)...');
             this.loadBackgroundBatch([
                 () => this.loadVideo('video/video4.mp4').then(v => { this.assets.video4 = v; }),
                 () => this.loadVideo('video/video5.mp4').then(v => { this.assets.video5 = v; }),
@@ -486,15 +492,6 @@ class PointAndClickGame {
                 }),
                 () => this.loadVideo('video/video35.mp4').then(v => { this.assets.video35 = v; }),
                 () => this.loadVideo('video/video36.mp4').then(v => { this.assets.video36 = v; }),
-            ]);
-            
-            // Load audio in background (not critical for game operation)
-            this.loadBackgroundBatch([
-                () => this.loadAudio('audio/audio1.mp3').then(audio => { this.assets.audio1 = audio; }).catch(audioError => {
-                    console.warn('Audio not loaded, game will continue without sound:', audioError);
-                    this.assets.audio1 = null;
-                    return null;
-                })
             ]);
             
         } catch (error) {
@@ -599,10 +596,13 @@ class PointAndClickGame {
 		}
 	}
     
-    loadAudio(src) {
+    loadAudio(src, isCritical = false) {
         return new Promise((resolve, reject) => {
             console.log(`Loading audio: ${src}`);
             this.totalAssets += 1;
+            if (isCritical) {
+                this.totalCriticalAssets += 1;
+            }
             const audio = new Audio(src);
             audio.loop = true;
             audio.preload = 'auto';
@@ -618,6 +618,9 @@ class PointAndClickGame {
                 if (settled) return; settled = true;
                 console.log('Audio loaded successfully and ready to play');
                 this.loadedAssets += 1;
+                if (isCritical) {
+                    this.loadedCriticalAssets += 1;
+                }
                 this.updateLoadingProgress();
                 resolve(audio);
             };
@@ -626,6 +629,9 @@ class PointAndClickGame {
                 console.error('Audio loading error:', e);
                 console.error('Error details:', audio.error);
                 this.loadedAssets += 1;
+                if (isCritical) {
+                    this.loadedCriticalAssets += 1;
+                }
                 this.updateLoadingProgress();
                 reject(new Error(`Failed to load audio: ${src}`));
             };
