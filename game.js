@@ -2,7 +2,35 @@ class PointAndClickGame {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
-        this.loading = document.getElementById('loading');
+        this.introOverlay = document.getElementById('introOverlay');
+        this.clickToStart = document.getElementById('clickToStart');
+        this.loadingProgress = document.getElementById('loadingProgress');
+        this.loadingPercent = document.getElementById('loadingPercent');
+        this.assetsReady = false;
+        
+        // Add global click handler - works anywhere on screen
+        this.introClickHandler = (e) => {
+            if (this.assetsReady && !this.isLoading) {
+                // Remove the handler after first click
+                document.removeEventListener('click', this.introClickHandler);
+                document.removeEventListener('touchstart', this.introClickHandler);
+                if (this.introOverlay) {
+                    this.introOverlay.removeEventListener('click', this.introClickHandler);
+                    this.introOverlay.removeEventListener('touchstart', this.introClickHandler);
+                }
+                this.hideIntroAndStart();
+            }
+        };
+        
+        // Add click handlers for both mouse and touch
+        document.addEventListener('click', this.introClickHandler);
+        document.addEventListener('touchstart', this.introClickHandler);
+        
+        // Also add handler directly to overlay to catch clicks on text
+        if (this.introOverlay) {
+            this.introOverlay.addEventListener('click', this.introClickHandler);
+            this.introOverlay.addEventListener('touchstart', this.introClickHandler);
+        }
         
         // Game state
         this.currentLocation = 'video1';
@@ -364,54 +392,33 @@ class PointAndClickGame {
         try {
             this.isLoading = true;
             this.loadingCallsFinished = false;
-            // Short scramble animation for loading text (0.5s)
-            if (this.loading) {
-                const el = this.loading;
-                const targetText = 'loading assets...';
-                const duration = 500;
-                const scrambleChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789[]{}()+-/*=<>!?@#$%^&*';
-                const start = performance.now();
-                // Keep fixed width during entire loading to avoid jitter when appending percentage
-                const originalWhiteSpace = el.style.whiteSpace;
-                const originalWidth = el.style.width;
-                const originalBoxSizing = el.style.boxSizing;
-                // Fix container width in pixels to avoid center shift during transform translate(-50%, -50%)
-                const cs = window.getComputedStyle(el);
-                const font = cs.font;
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                if (ctx && font) ctx.font = font;
-                // Measure with max content including percentage
-                const measured = ctx ? ctx.measureText('loading assets... 100%').width : 0;
-                el.style.whiteSpace = 'pre';
-                el.style.boxSizing = 'content-box';
-                if (measured > 0) el.style.width = Math.ceil(measured) + 'px';
-                let rafId = 0;
-                const tick = () => {
-                    const now = performance.now();
-                    const p = Math.min((now - start) / duration, 1);
-                    const reveal = Math.floor(p * targetText.length);
-                    let out = '';
-                    for (let i = 0; i < targetText.length; i++) {
-                        if (i < reveal) {
-                            out += targetText[i];
-                        } else {
-                            out += (targetText[i] === ' ' ? ' ' : scrambleChars[Math.floor(Math.random() * scrambleChars.length)]);
-                        }
-                    }
-                    el.textContent = out;
-                    if (p < 1) {
-                        rafId = requestAnimationFrame(tick);
-                    } else {
-                        el.textContent = targetText;
-                        // Do NOT restore styles here; keep fixed width until all assets loaded
-                    }
-                };
-                requestAnimationFrame(tick);
+            
+            // First, load only video1 and image1 to show immediately
+            console.log('Loading initial assets (video1, image1)...');
+            // Don't count these in totalAssets for background loading
+            const initialImage1 = await this.loadImageWithoutCounting('image/image1.png');
+            const initialVideo1 = await this.loadVideoWithoutCounting('video/video1.mp4');
+            this.assets.image1 = initialImage1;
+            this.assets.video1 = initialVideo1;
+            
+            // Set up initial state and start showing video1
+            this.currentLocation = 'video1';
+            this.isTransitioning = false;
+            
+            // Start video1 and game loop immediately
+            if (this.assets.video1) {
+                this.assets.video1.play().catch(err => {
+                    console.error('Error playing video1:', err);
+                });
             }
-            // Load images and videos
-            this.assets.image1 = await this.loadImage('image/image1.png');
-            this.assets.video1 = await this.loadVideo('video/video1.mp4');
+            this.gameLoop();
+            
+            // Now load the rest of assets in the background
+            console.log('Loading remaining assets in background...');
+            this.totalAssets = 0;
+            this.loadedAssets = 0;
+            
+            // Load remaining images and videos
             this.assets.video2 = await this.loadVideo('video/video2.mp4');
             this.assets.image2 = await this.loadImage('image/image2.png');
             this.assets.video3 = await this.loadVideo('video/video3.mp4');
@@ -476,24 +483,63 @@ class PointAndClickGame {
                 this.assets.audio1 = null;
             }
             
-            // Mark load scheduling finished and set progress to 100
+            // Mark load scheduling finished
             this.loadingCallsFinished = true;
-            this.updateLoadingProgress();
-            // Hide loading screen
-            this.loading.style.display = 'none';
+            // Mark assets as ready
+            this.assetsReady = true;
             this.isLoading = false;
             
-            // Start game
-            this.startGame();
+            // Show "click anywhere to start" message
+            this.showClickToStart();
             
         } catch (error) {
             console.error('Resource loading error:', error);
-            this.loading.innerHTML = 'access denied...';
-            this.loading.style.color = '#FF0000';
-            this.loading.style.fontSize = '16px';
-            this.loading.style.lineHeight = '1.2';
-            this.loading.style.display = 'block';
+            // On error, still allow game to start if video1 is loaded
+            if (this.assets.video1 && this.assets.image1) {
+                this.assetsReady = true;
+                this.isLoading = false;
+                this.showClickToStart();
+            }
         }
+    }
+    
+    loadVideoWithoutCounting(src) {
+        return new Promise((resolve, reject) => {
+            const video = document.createElement('video');
+            video.src = src;
+            // Enable looping for video1, video3, video5, video7, video9, video11, video13, video15, video17, video20, video23, video25, video29, video32 and video35
+            const shouldLoop = src.includes('video1') || src.includes('video3') || src.includes('video5') || src.includes('video7') || src.includes('video9') || src.includes('video11') || src.includes('video13') || src.includes('video15') || src.includes('video17') || src.includes('video20') || src.includes('video23') || src.includes('video25') || src.includes('video29') || src.includes('video32') || src.includes('video35');
+            video.loop = shouldLoop;
+            video.muted = true;
+            video.preload = 'auto';
+            
+            video.addEventListener('canplaythrough', () => {
+                console.log(`Video fully loaded: ${src}`);
+                resolve(video);
+            });
+            
+            video.addEventListener('error', () => {
+                reject(new Error(`Failed to load video: ${src}`));
+            });
+            
+            video.load();
+        });
+    }
+    
+    loadImageWithoutCounting(src) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = src;
+            
+            img.addEventListener('load', () => {
+                console.log(`Image loaded: ${src}`);
+                resolve(img);
+            });
+            
+            img.addEventListener('error', () => {
+                reject(new Error(`Failed to load image: ${src}`));
+            });
+        });
     }
     
     loadVideo(src) {
@@ -616,23 +662,56 @@ class PointAndClickGame {
     startGame() {
         console.log('Starting game...');
         
+        // Ensure we're in the correct initial state
+        this.currentLocation = 'video1';
+        this.isTransitioning = false;
+        
         // Start first video
         console.log('Starting video1...');
-        this.assets.video1.play();
+        if (this.assets.video1) {
+            this.assets.video1.play().catch(err => {
+                console.error('Error playing video1:', err);
+            });
+        }
         this.maybeShowIntroOverlay();
         
-        // Start game loop
-        this.gameLoop();
+        // Game loop is already started in loadAssets()
     }
 
     updateLoadingProgress() {
-        if (!this.loading) return;
+        if (!this.loadingPercent) return;
         if (this.totalAssets === 0) return;
         let percent = Math.max(0, Math.min(100, Math.floor((this.loadedAssets / this.totalAssets) * 100)));
         if (!this.loadingCallsFinished) {
             percent = Math.min(percent, 99);
         }
-        this.loading.innerHTML = `loading assets... <span style="color:#15FF00;">${percent}%</span>`;
+        this.loadingPercent.textContent = `${percent}%`;
+    }
+    
+    showClickToStart() {
+        // Hide loading progress
+        if (this.loadingProgress) {
+            this.loadingProgress.style.display = 'none';
+        }
+        // Show click to start message
+        if (this.clickToStart) {
+            this.clickToStart.textContent = 'click anywhere to start';
+            this.clickToStart.style.display = 'block';
+        }
+        if (this.introOverlay) {
+            this.introOverlay.classList.add('clickable');
+        }
+    }
+    
+    hideIntroAndStart() {
+        if (this.introOverlay) {
+            this.introOverlay.style.display = 'none';
+        }
+        // Game is already started (video1 is playing)
+        // If we're on video1, start the transition immediately
+        if (this.currentLocation === 'video1' && !this.isTransitioning) {
+            this.startTransition();
+        }
     }
 
     maybeShowIntroOverlay() {

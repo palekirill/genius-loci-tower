@@ -22,21 +22,70 @@
             cursor: pointer;
         }
         
-        #loading {
+        #introOverlay {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             color: #FFFFFF;
             font-size: 16px;
-            line-height: 1.2;
+            line-height: 1.6;
             z-index: 1000;
             text-align: left;
+            max-width: 600px;
+            padding: 20px;
+            pointer-events: none;
+        }
+        
+        #introOverlay .intro-text {
+            margin-bottom: 20px;
+            white-space: pre-line;
+        }
+        
+        #introOverlay .loading-progress {
+            margin-top: 20px;
+        }
+        
+        #introOverlay .loading-progress .loading-percent {
+            color: #15FF00;
+        }
+        
+        #introOverlay .click-to-start {
+            margin-top: 20px;
+            color: #15FF00;
+            animation: blink 1s infinite;
+            pointer-events: auto;
+        }
+        
+        #introOverlay.clickable {
+            cursor: pointer;
+        }
+        
+        #introOverlay.clickable * {
+            pointer-events: auto;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
         }
     </style>
 </head>
 <body>
-    <div id="loading">loading assets...</div>
+    <div id="introOverlay">
+        <div class="intro-text">dear wandering soul,
+
+you are about to enter a small world created with great love and entirely with the help of ai. from the visuals and music to the technical foundation, every part of this experience was born from a prompt, from the word itself.
+
+i am deeply grateful to welcome you here.
+
+this is a demo version of one of the interactive experiences in the series i am currently immersed in, exploring different mechanics in each. as in the real world, things here are not perfect, so if you encounter an artifact or a glitch, please let me know.
+
+ever yours,
+kirill semenovich</div>
+        <div class="loading-progress" id="loadingProgress">loading assets may take a few minutes. thank you for your patience… <span class="loading-percent" id="loadingPercent">0%</span></div>
+        <div class="click-to-start" id="clickToStart" style="display: none;"></div>
+    </div>
     <canvas id="gameCanvas"></canvas>
     
     <script src="game.js"></script>
