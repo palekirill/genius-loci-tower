@@ -687,7 +687,7 @@ class PointAndClickGame {
         if (this.totalAssets === 0) return;
         let percent = Math.max(0, Math.min(100, Math.floor((this.loadedAssets / this.totalAssets) * 100)));
         if (!this.loadingCallsFinished) {
-            percent = Math.min(percent, 99);
+            percent = Math.min(percent, 98);
         }
         this.loadingPercent.textContent = `${percent}%`;
     }
