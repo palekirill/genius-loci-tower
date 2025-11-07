@@ -41,19 +41,25 @@
             margin-bottom: 20px;
             white-space: pre-line;
         }
+
+        #introOverlay .intro-text .intro-greeting {
+            display: inline-block;
+            white-space: pre;
+        }
         
         #introOverlay .loading-progress {
             margin-top: 20px;
+            min-height: 52px;
         }
         
         #introOverlay .loading-progress .loading-percent {
             color: #15FF00;
         }
         
-        #introOverlay .click-to-start {
-            margin-top: 20px;
+        #introOverlay .loading-progress .click-to-start {
             color: #15FF00;
             animation: blink 1s infinite;
+            display: inline-block;
             pointer-events: auto;
         }
         
@@ -73,18 +79,22 @@
 </head>
 <body>
     <div id="introOverlay">
-        <div class="intro-text">dear wandering soul,
+        <div class="intro-text"><span class="intro-greeting" id="introGreeting">dear wandering soul,</span>
 
-you are about to enter a small world created with great love and entirely with the help of ai. from the visuals and music to the technical foundation, every part of this experience was born from a prompt, from the word itself.
+you are about to enter a small world created with love and entirely with the help of ai. from the visuals and music to the technical foundation, every part of this experience was born from a prompt, from the word itself. i am deeply grateful to welcome you here. the rules are simple:
 
-i am deeply grateful to welcome you here.
+<em>&gt;&gt; choose a path</em>
+<em>&gt;&gt; click</em>
+<em>&gt;&gt; repeat</em>
 
-this is a demo version of one of the interactive experiences in the series i am currently immersed in, exploring different mechanics in each. as in the real world, things here are not perfect, so if you encounter an artifact or a glitch, please let me know.
+this is a demo version of one of the interactive experiences i am currently crafting. as in the real world, things here are not perfect, so if you encounter an artifact or a glitch, please let me know.
 
 ever yours,
-kirill semenovich</div>
-        <div class="loading-progress" id="loadingProgress">loading assets may take a few minutes. thank you for your patience… <span class="loading-percent" id="loadingPercent">0%</span></div>
-        <div class="click-to-start" id="clickToStart" style="display: none;"></div>
+kirill semenovich aka pale kirill</div>
+        <div class="loading-progress" id="loadingProgress">
+            <div>&gt; loading assets... this may take a few minutes (<span class="loading-percent" id="loadingPercent">0%</span>)</div>
+            <div>&gt; thank you for your patience</div>
+        </div>
     </div>
     <canvas id="gameCanvas"></canvas>
     

@@ -3,7 +3,7 @@ class PointAndClickGame {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.introOverlay = document.getElementById('introOverlay');
-        this.clickToStart = document.getElementById('clickToStart');
+        this.introGreeting = document.getElementById('introGreeting');
         this.loadingProgress = document.getElementById('loadingProgress');
         this.loadingPercent = document.getElementById('loadingPercent');
         this.assetsReady = false;
@@ -30,6 +30,10 @@ class PointAndClickGame {
         if (this.introOverlay) {
             this.introOverlay.addEventListener('click', this.introClickHandler);
             this.introOverlay.addEventListener('touchstart', this.introClickHandler);
+        }
+        
+        if (this.introGreeting) {
+            this.animateGreeting(this.introGreeting);
         }
         
         // Game state
@@ -688,15 +692,52 @@ class PointAndClickGame {
         this.loadingPercent.textContent = `${percent}%`;
     }
     
-    showClickToStart() {
-        // Hide loading progress
-        if (this.loadingProgress) {
-            this.loadingProgress.style.display = 'none';
+    animateGreeting(element) {
+        if (!element) return;
+        const targetText = element.textContent;
+        const scrambleChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789[]{}()+-/*=<>!?@#$%^&*';
+        const duration = 1000;
+        const originalDisplay = element.style.display;
+        const originalWhiteSpace = element.style.whiteSpace;
+        const originalWidth = element.style.width;
+        element.style.display = 'inline-block';
+        element.style.whiteSpace = 'pre';
+        if (!originalWidth) {
+            const rect = element.getBoundingClientRect();
+            if (rect && rect.width > 0) {
+                element.style.width = Math.ceil(rect.width) + 'px';
+            }
         }
-        // Show click to start message
-        if (this.clickToStart) {
-            this.clickToStart.textContent = 'click anywhere to start';
-            this.clickToStart.style.display = 'block';
+        const start = performance.now();
+        const tick = () => {
+            const now = performance.now();
+            const progress = Math.min((now - start) / duration, 1);
+            const reveal = Math.floor(progress * targetText.length);
+            let out = '';
+            for (let i = 0; i < targetText.length; i++) {
+                const ch = targetText[i];
+                if (i < reveal || ch === ' ') {
+                    out += ch;
+                } else {
+                    out += scrambleChars[Math.floor(Math.random() * scrambleChars.length)];
+                }
+            }
+            element.textContent = out;
+            if (progress < 1) {
+                requestAnimationFrame(tick);
+            } else {
+                element.textContent = targetText;
+                element.style.display = originalDisplay;
+                element.style.whiteSpace = originalWhiteSpace;
+                element.style.width = originalWidth;
+            }
+        };
+        requestAnimationFrame(tick);
+    }
+    
+    showClickToStart() {
+        if (this.loadingProgress) {
+            this.loadingProgress.innerHTML = '<span class="click-to-start">click anywhere to start</span>';
         }
         if (this.introOverlay) {
             this.introOverlay.classList.add('clickable');
