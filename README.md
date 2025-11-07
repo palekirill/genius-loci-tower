@@ -1,29 +1,20 @@
-# Genius Loci [Tower]
+# genius_loci_tower (demo)
 
-A point-and-click interactive experience built with HTML5 Canvas and JavaScript.
+short interactive point-and-click experience built with html5 canvas and javascript, created entirely with the help of AI.
 
-## Features
+## features
 
-- Interactive video-based navigation
-- Multiple branching paths
-- Dynamic transitions and looping videos
-- Background music
+- desktop-only experience (not optimized for mobile)
+- best viewed in google chrome
+- first-person interactive point-and-click navigation
 
-## Setup
+## instructions
 
-1. Clone this repository
-2. Open `index.html` in a modern web browser
-3. Click anywhere to start the experience
+>> enter the link https://palekirill.github.io/genius-loci-tower/
+>> click on interactive parts
+>> explore branching paths
+>> repeat
 
-## Technical Details
+## note
 
-- Pure JavaScript (no frameworks)
-- HTML5 Canvas for rendering
-- Video and audio assets for immersive experience
-
-## License
-
-[Add your license here]
-
-
-
+this is a demo, glitches or artifacts may appear. please report any issues at https://x.com/palekirill
