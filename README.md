@@ -10,10 +10,10 @@ short interactive point-and-click experience built with html5 canvas and javascr
 
 ## instructions
 
-> enter the link https://palekirill.github.io/genius-loci-tower/
-> click on interactive parts
-> explore branching paths
-> repeat
+- enter the link https://palekirill.github.io/genius-loci-tower/
+- click on interactive parts
+- explore branching paths
+- repeat
 
 ## note
 
