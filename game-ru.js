@@ -737,7 +737,7 @@ class PointAndClickGame {
     
     showClickToStart() {
         if (this.loadingProgress) {
-            this.loadingProgress.innerHTML = '<span class="click-to-start">щелкните где угодно, чтобы начать</span>';
+            this.loadingProgress.innerHTML = '<span class="click-to-start">щелкните по экрану, чтобы начать</span>';
         }
         if (this.introOverlay) {
             this.introOverlay.classList.add('clickable');
@@ -813,7 +813,7 @@ class PointAndClickGame {
 
         const footer = document.createElement('div');
         footer.style.color = '#15FF00';
-        footer.textContent = 'щелкните где угодно, чтобы начать';
+        footer.textContent = 'щелкните по экрану, чтобы начать';
 
         content.appendChild(header);
         content.appendChild(line2);
