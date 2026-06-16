@@ -17,4 +17,4 @@ short interactive point-and-click experience built with html5 canvas and javascr
 
 ## note
 
-this is a demo, glitches or artifacts may appear. please report any issues at https://x.com/palekirill
+please report any issues at https://x.com/palekirill
