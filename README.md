@@ -18,10 +18,6 @@ short interactive point-and-click experience built with html5 canvas and javascr
 - explore branching paths
 - repeat
 
-## onchain
-
-this is an on-chain edition. all media is permanently archived on [arweave](https://arweave.net/1FuVEIRmDnXaCKOY3N8U_BiXMmzRrdntGqKXp2TpzMQ/genius_loci_tower/index.html). owned by claire silver.
-
 ## note
 
 if you encounter an artifact or a glitch, please report at [https://x.com/palekirill](https://x.com/palekirill)
