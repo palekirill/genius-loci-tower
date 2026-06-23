@@ -1,4 +1,7 @@
-class PointAndClickGame {
+/*
+ * oh, hi! nice that you decided to read the code. — k.s.
+ */
+class glexperience {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
@@ -7,6 +10,8 @@ class PointAndClickGame {
         this.loadingProgress = document.getElementById('loadingProgress');
         this.loadingPercent = document.getElementById('loadingPercent');
         this.assetsReady = false;
+        // Base URL = directory of current page (fixes Arweave/ArDrive where each file has its own URL)
+        this.baseUrl = new URL('.', window.location.href).href;
         
         // Add global click handler - works anywhere on screen
         this.introClickHandler = (e) => {
@@ -35,6 +40,12 @@ class PointAndClickGame {
         if (this.introGreeting) {
             this.animateGreeting(this.introGreeting);
         }
+        
+        // ASCII line gentle flicker (1–2 random chars change every ~2.5s)
+        this.asciiLineBase = '============================================================';
+        this.asciiLineChars = '=-_#*.~+:;|/\\<>^`';
+        this.asciiLines = document.querySelectorAll('.ascii-line');
+        this.asciiLineInterval = setInterval(() => this.tickAsciiLines(), 2000);
         
         // Game state
         this.currentLocation = 'video1';
@@ -291,77 +302,8 @@ class PointAndClickGame {
                 this.preparingVideo6 = false;
                 this.preparingVideo4 = false;
                 
-                // Pause all videos to ensure clean state
-                this.assets.video2.pause();
-                this.assets.video3.pause();
-                this.assets.video4.pause();
-                this.assets.video5.pause();
-                this.assets.video6.pause();
-                this.assets.video7.pause();
-                this.assets.video8.pause();
-                this.assets.video9.pause();
-                this.assets.video10.pause();
-                this.assets.video11.pause();
-                this.assets.video12.pause();
-                this.assets.video13.pause();
-                this.assets.video14.pause();
-                this.assets.video15.pause();
-                this.assets.video16.pause();
-                this.assets.video17.pause();
-                this.assets.video18.pause();
-                this.assets.video19.pause();
-                this.assets.video20.pause();
-                this.assets.video21.pause();
-                this.assets.video22.pause();
-                this.assets.video23.pause();
-                this.assets.video24.pause();
-                this.assets.video25.pause();
-                this.assets.video26.pause();
-                this.assets.video27.pause();
-                this.assets.video28.pause();
-                this.assets.video29.pause();
-                this.assets.video31.pause();
-                this.assets.video30.pause();
-                this.assets.video32.pause();
-                this.assets.video33.pause();
-                this.assets.video34.pause();
-                this.assets.video35.pause();
-                
-                // Reset currentTime for all videos
-                this.assets.video2.currentTime = 0;
-                this.assets.video3.currentTime = 0;
-                this.assets.video4.currentTime = 0;
-                this.assets.video5.currentTime = 0;
-                this.assets.video6.currentTime = 0;
-                this.assets.video7.currentTime = 0;
-                this.assets.video8.currentTime = 0;
-                this.assets.video9.currentTime = 0;
-                this.assets.video10.currentTime = 0;
-                this.assets.video11.currentTime = 0;
-                this.assets.video12.currentTime = 0;
-                this.assets.video13.currentTime = 0;
-                this.assets.video14.currentTime = 0;
-                this.assets.video15.currentTime = 0;
-                this.assets.video16.currentTime = 0;
-                this.assets.video17.currentTime = 0;
-                this.assets.video18.currentTime = 0;
-                this.assets.video19.currentTime = 0;
-                this.assets.video20.currentTime = 0;
-                this.assets.video21.currentTime = 0;
-                this.assets.video22.currentTime = 0;
-                this.assets.video23.currentTime = 0;
-                this.assets.video24.currentTime = 0;
-                this.assets.video25.currentTime = 0;
-                this.assets.video26.currentTime = 0;
-                this.assets.video27.currentTime = 0;
-                this.assets.video28.currentTime = 0;
-                this.assets.video29.currentTime = 0;
-                this.assets.video31.currentTime = 0;
-                this.assets.video30.currentTime = 0;
-                this.assets.video32.currentTime = 0;
-                this.assets.video33.currentTime = 0;
-                this.assets.video34.currentTime = 0;
-                this.assets.video35.currentTime = 0;
+                this.pauseLoadedVideos('video1');
+                this.resetLoadedVideosTime('video1');
                 
                 // Return to initial location
                 this.currentLocation = 'video1';
@@ -393,6 +335,7 @@ class PointAndClickGame {
     }
     
     async loadAssets() {
+        let audioLoadPromise = null;
         try {
             this.isLoading = true;
             this.loadingCallsFinished = false;
@@ -421,6 +364,12 @@ class PointAndClickGame {
             console.log('Loading remaining assets in background...');
             this.totalAssets = 0;
             this.loadedAssets = 0;
+
+            // Audio loads in parallel — must not wait on later images/videos (gateway may fail mid-chain)
+            audioLoadPromise = this.loadAudio('audio/audio1.mp3').catch((audioError) => {
+                console.warn('Audio not loaded, game will continue without sound:', audioError);
+                return null;
+            });
             
             // Load remaining images and videos
             this.assets.video2 = await this.loadVideo('video/video2.mp4');
@@ -462,7 +411,12 @@ class PointAndClickGame {
             this.assets.video27 = await this.loadVideo('video/video27.mp4');
             this.assets.video28 = await this.loadVideo('video/video28.mp4');
             this.assets.video29 = await this.loadVideo('video/video29.mp4');
-            this.assets.image13 = await this.loadImage('image/image13.png');
+            try {
+                this.assets.image13 = await this.loadImage('image/image13.png');
+            } catch (e) {
+                console.warn('image13 not found, falling back to image12 as background for video29');
+                this.assets.image13 = this.assets.image12;
+            }
             this.assets.video30 = await this.loadVideo('video/video30.mp4');
             this.assets.video31 = await this.loadVideo('video/video31.mp4');
             this.assets.video32 = await this.loadVideo('video/video32.mp4');
@@ -478,14 +432,8 @@ class PointAndClickGame {
             }
             this.assets.video35 = await this.loadVideo('video/video35.mp4');
             this.assets.video36 = await this.loadVideo('video/video36.mp4');
-            
-            // Load audio (not critical for game operation)
-            try {
-                this.assets.audio1 = await this.loadAudio('audio/audio1.mp3');
-            } catch (audioError) {
-                console.warn('Audio not loaded, game will continue without sound:', audioError);
-                this.assets.audio1 = null;
-            }
+
+            this.assets.audio1 = await audioLoadPromise;
             
             // Mark load scheduling finished
             this.loadingCallsFinished = true;
@@ -498,6 +446,9 @@ class PointAndClickGame {
             
         } catch (error) {
             console.error('Resource loading error:', error);
+            if (audioLoadPromise && !this.assets.audio1) {
+                this.assets.audio1 = await audioLoadPromise;
+            }
             // On error, still allow game to start if video1 is loaded
             if (this.assets.video1 && this.assets.image1) {
                 this.assetsReady = true;
@@ -510,7 +461,7 @@ class PointAndClickGame {
     loadVideoWithoutCounting(src) {
         return new Promise((resolve, reject) => {
             const video = document.createElement('video');
-            video.src = src;
+            video.src = this.resolveUrl(src);
             // Enable looping for video1, video3, video5, video7, video9, video11, video13, video15, video17, video20, video23, video25, video29, video32 and video35
             const shouldLoop = src.includes('video1') || src.includes('video3') || src.includes('video5') || src.includes('video7') || src.includes('video9') || src.includes('video11') || src.includes('video13') || src.includes('video15') || src.includes('video17') || src.includes('video20') || src.includes('video23') || src.includes('video25') || src.includes('video29') || src.includes('video32') || src.includes('video35');
             video.loop = shouldLoop;
@@ -530,10 +481,32 @@ class PointAndClickGame {
         });
     }
     
+    resolveUrl(src) {
+        return new URL(src, this.baseUrl).href;
+    }
+
+    pauseLoadedVideos(...excludeKeys) {
+        for (const key of Object.keys(this.assets)) {
+            if (!key.startsWith('video')) continue;
+            if (excludeKeys.includes(key)) continue;
+            const video = this.assets[key];
+            if (video) video.pause();
+        }
+    }
+
+    resetLoadedVideosTime(...excludeKeys) {
+        for (const key of Object.keys(this.assets)) {
+            if (!key.startsWith('video')) continue;
+            if (excludeKeys.includes(key)) continue;
+            const video = this.assets[key];
+            if (video) video.currentTime = 0;
+        }
+    }
+
     loadImageWithoutCounting(src) {
         return new Promise((resolve, reject) => {
             const img = new Image();
-            img.src = src;
+            img.src = this.resolveUrl(src);
             
             img.addEventListener('load', () => {
                 console.log(`Image loaded: ${src}`);
@@ -551,7 +524,7 @@ class PointAndClickGame {
             // Count asset for progress
             this.totalAssets += 1;
             const video = document.createElement('video');
-            video.src = src;
+            video.src = this.resolveUrl(src);
             // Enable looping for video1, video3, video5, video7, video9, video11, video13, video15, video17, video20, video23, video25, video29, video32 and video35
             const shouldLoop = src.includes('video1') || src.includes('video3') || src.includes('video5') || src.includes('video7') || src.includes('video9') || src.includes('video11') || src.includes('video13') || src.includes('video15') || src.includes('video17') || src.includes('video20') || src.includes('video23') || src.includes('video25') || src.includes('video29') || src.includes('video32') || src.includes('video35');
             video.loop = shouldLoop;
@@ -580,7 +553,7 @@ class PointAndClickGame {
             // Count asset for progress
             this.totalAssets += 1;
             const img = new Image();
-            img.src = src;
+            img.src = this.resolveUrl(src);
             
             img.addEventListener('load', () => {
                 console.log(`Image loaded: ${src}`);
@@ -624,7 +597,7 @@ class PointAndClickGame {
         return new Promise((resolve, reject) => {
             console.log(`Loading audio: ${src}`);
             this.totalAssets += 1;
-            const audio = new Audio(src);
+            const audio = new Audio(this.resolveUrl(src));
             audio.loop = true;
             audio.preload = 'auto';
             audio.volume = 0.7; // Set volume
@@ -735,6 +708,23 @@ class PointAndClickGame {
         requestAnimationFrame(tick);
     }
     
+    tickAsciiLines() {
+        if (!this.asciiLines || this.asciiLines.length === 0) return;
+        if (this.introOverlay && this.introOverlay.style.display === 'none') return;
+        const base = this.asciiLineBase;
+        const chars = this.asciiLineChars;
+        const len = base.length;
+        const numFlips = 1 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < this.asciiLines.length; i++) {
+            const arr = base.split('');
+            for (let f = 0; f < numFlips; f++) {
+                const idx = Math.floor(Math.random() * len);
+                arr[idx] = chars[Math.floor(Math.random() * chars.length)];
+            }
+            this.asciiLines[i].textContent = arr.join('');
+        }
+    }
+    
     showClickToStart() {
         if (this.loadingProgress) {
             this.loadingProgress.innerHTML = '<span class="click-to-start">click anywhere to start</span>';
@@ -745,6 +735,10 @@ class PointAndClickGame {
     }
     
     hideIntroAndStart() {
+        if (this.asciiLineInterval) {
+            clearInterval(this.asciiLineInterval);
+            this.asciiLineInterval = null;
+        }
         if (this.introOverlay) {
             this.introOverlay.style.display = 'none';
         }
@@ -1025,7 +1019,7 @@ class PointAndClickGame {
 			// Click on video29 - return to start via video30 and download map
 			console.log('Video29 clicked - starting video30 transition back to start');
 			// Open map in new tab
-			window.open('gif/map.gif', '_blank', 'noopener,noreferrer');
+			window.open(this.resolveUrl('gif/map.gif'), '_blank', 'noopener,noreferrer');
 			this.startVideo30Transition();
         } else if (this.showingVideo32 && !this.showingVideo33 && !this.preparingVideo33) {
             // Click on video32 - start video33 to return to start
@@ -1411,73 +1405,8 @@ class PointAndClickGame {
                 this.preparingVideo6 = false;
                 this.preparingVideo4 = false;
                 
-                // Pause all videos to ensure clean state
-                this.assets.video2.pause();
-                this.assets.video3.pause();
-                this.assets.video4.pause();
-                this.assets.video5.pause();
-                this.assets.video6.pause();
-                this.assets.video7.pause();
-                this.assets.video8.pause();
-                this.assets.video9.pause();
-                this.assets.video10.pause();
-                this.assets.video11.pause();
-                this.assets.video12.pause();
-                this.assets.video13.pause();
-                this.assets.video14.pause();
-                this.assets.video15.pause();
-                this.assets.video16.pause();
-                this.assets.video17.pause();
-                this.assets.video18.pause();
-                this.assets.video19.pause();
-                this.assets.video20.pause();
-                this.assets.video21.pause();
-                this.assets.video22.pause();
-                this.assets.video23.pause();
-                this.assets.video24.pause();
-                this.assets.video25.pause();
-                this.assets.video26.pause();
-                this.assets.video27.pause();
-                this.assets.video28.pause();
-                this.assets.video29.pause();
-                this.assets.video30.pause();
-                this.assets.video31.pause();
-                this.assets.video32.pause();
-                this.assets.video33.pause();
-                
-                // Reset currentTime for all videos
-                this.assets.video2.currentTime = 0;
-                this.assets.video3.currentTime = 0;
-                this.assets.video4.currentTime = 0;
-                this.assets.video5.currentTime = 0;
-                this.assets.video6.currentTime = 0;
-                this.assets.video7.currentTime = 0;
-                this.assets.video8.currentTime = 0;
-                this.assets.video9.currentTime = 0;
-                this.assets.video10.currentTime = 0;
-                this.assets.video11.currentTime = 0;
-                this.assets.video12.currentTime = 0;
-                this.assets.video13.currentTime = 0;
-                this.assets.video14.currentTime = 0;
-                this.assets.video15.currentTime = 0;
-                this.assets.video16.currentTime = 0;
-                this.assets.video17.currentTime = 0;
-                this.assets.video18.currentTime = 0;
-                this.assets.video19.currentTime = 0;
-                this.assets.video20.currentTime = 0;
-                this.assets.video21.currentTime = 0;
-                this.assets.video22.currentTime = 0;
-                this.assets.video23.currentTime = 0;
-                this.assets.video24.currentTime = 0;
-                this.assets.video25.currentTime = 0;
-                this.assets.video26.currentTime = 0;
-                this.assets.video27.currentTime = 0;
-                this.assets.video28.currentTime = 0;
-                this.assets.video29.currentTime = 0;
-                this.assets.video30.currentTime = 0;
-                this.assets.video31.currentTime = 0;
-                this.assets.video32.currentTime = 0;
-                this.assets.video33.currentTime = 0;
+                this.pauseLoadedVideos('video1');
+                this.resetLoadedVideosTime('video1');
                 
                 // Return to initial location
                 this.currentLocation = 'video1';
@@ -1620,73 +1549,8 @@ class PointAndClickGame {
                 
                 // Note: event listener flags are reset inside each handler automatically
                 
-                // Pause all videos to ensure clean state
-                this.assets.video2.pause();
-                this.assets.video3.pause();
-                this.assets.video4.pause();
-                this.assets.video5.pause();
-                this.assets.video6.pause();
-                this.assets.video7.pause();
-                this.assets.video8.pause();
-                this.assets.video9.pause();
-                this.assets.video10.pause();
-                this.assets.video11.pause();
-                this.assets.video12.pause();
-                this.assets.video13.pause();
-                this.assets.video14.pause();
-                this.assets.video15.pause();
-                this.assets.video16.pause();
-                this.assets.video17.pause();
-                this.assets.video18.pause();
-                this.assets.video19.pause();
-                this.assets.video20.pause();
-                this.assets.video21.pause();
-                this.assets.video22.pause();
-                this.assets.video23.pause();
-                this.assets.video24.pause();
-                this.assets.video25.pause();
-                this.assets.video26.pause();
-                this.assets.video27.pause();
-                this.assets.video28.pause();
-                this.assets.video29.pause();
-                this.assets.video31.pause();
-                this.assets.video30.pause();
-                this.assets.video32.pause();
-                this.assets.video33.pause();
-                
-                // Reset currentTime for all videos
-                this.assets.video2.currentTime = 0;
-                this.assets.video3.currentTime = 0;
-                this.assets.video4.currentTime = 0;
-                this.assets.video5.currentTime = 0;
-                this.assets.video6.currentTime = 0;
-                this.assets.video7.currentTime = 0;
-                this.assets.video8.currentTime = 0;
-                this.assets.video9.currentTime = 0;
-                this.assets.video10.currentTime = 0;
-                this.assets.video11.currentTime = 0;
-                this.assets.video12.currentTime = 0;
-                this.assets.video13.currentTime = 0;
-                this.assets.video14.currentTime = 0;
-                this.assets.video15.currentTime = 0;
-                this.assets.video16.currentTime = 0;
-                this.assets.video17.currentTime = 0;
-                this.assets.video18.currentTime = 0;
-                this.assets.video19.currentTime = 0;
-                this.assets.video20.currentTime = 0;
-                this.assets.video21.currentTime = 0;
-                this.assets.video22.currentTime = 0;
-                this.assets.video23.currentTime = 0;
-                this.assets.video24.currentTime = 0;
-                this.assets.video25.currentTime = 0;
-                this.assets.video26.currentTime = 0;
-                this.assets.video27.currentTime = 0;
-                this.assets.video28.currentTime = 0;
-                this.assets.video29.currentTime = 0;
-                this.assets.video31.currentTime = 0;
-                this.assets.video30.currentTime = 0;
-                this.assets.video32.currentTime = 0;
-                this.assets.video33.currentTime = 0;
+                this.pauseLoadedVideos('video1');
+                this.resetLoadedVideosTime('video1');
                 
                 // Return to initial location
                 this.currentLocation = 'video1';
@@ -1786,73 +1650,8 @@ class PointAndClickGame {
                 
                 // Note: event listener flags are reset inside each handler automatically
                 
-                // Pause all videos to ensure clean state
-                this.assets.video2.pause();
-                this.assets.video3.pause();
-                this.assets.video4.pause();
-                this.assets.video5.pause();
-                this.assets.video6.pause();
-                this.assets.video7.pause();
-                this.assets.video8.pause();
-                this.assets.video9.pause();
-                this.assets.video10.pause();
-                this.assets.video11.pause();
-                this.assets.video12.pause();
-                this.assets.video13.pause();
-                this.assets.video14.pause();
-                this.assets.video15.pause();
-                this.assets.video16.pause();
-                this.assets.video17.pause();
-                this.assets.video18.pause();
-                this.assets.video19.pause();
-                this.assets.video20.pause();
-                this.assets.video21.pause();
-                this.assets.video22.pause();
-                this.assets.video23.pause();
-                this.assets.video24.pause();
-                this.assets.video25.pause();
-                this.assets.video26.pause();
-                this.assets.video27.pause();
-                this.assets.video28.pause();
-                this.assets.video29.pause();
-                this.assets.video31.pause();
-                this.assets.video30.pause();
-                this.assets.video32.pause();
-                this.assets.video33.pause();
-                
-                // Reset currentTime for all videos
-                this.assets.video2.currentTime = 0;
-                this.assets.video3.currentTime = 0;
-                this.assets.video4.currentTime = 0;
-                this.assets.video5.currentTime = 0;
-                this.assets.video6.currentTime = 0;
-                this.assets.video7.currentTime = 0;
-                this.assets.video8.currentTime = 0;
-                this.assets.video9.currentTime = 0;
-                this.assets.video10.currentTime = 0;
-                this.assets.video11.currentTime = 0;
-                this.assets.video12.currentTime = 0;
-                this.assets.video13.currentTime = 0;
-                this.assets.video14.currentTime = 0;
-                this.assets.video15.currentTime = 0;
-                this.assets.video16.currentTime = 0;
-                this.assets.video17.currentTime = 0;
-                this.assets.video18.currentTime = 0;
-                this.assets.video19.currentTime = 0;
-                this.assets.video20.currentTime = 0;
-                this.assets.video21.currentTime = 0;
-                this.assets.video22.currentTime = 0;
-                this.assets.video23.currentTime = 0;
-                this.assets.video24.currentTime = 0;
-                this.assets.video25.currentTime = 0;
-                this.assets.video26.currentTime = 0;
-                this.assets.video27.currentTime = 0;
-                this.assets.video28.currentTime = 0;
-                this.assets.video29.currentTime = 0;
-                this.assets.video31.currentTime = 0;
-                this.assets.video30.currentTime = 0;
-                this.assets.video32.currentTime = 0;
-                this.assets.video33.currentTime = 0;
+                this.pauseLoadedVideos('video1');
+                this.resetLoadedVideosTime('video1');
                 
                 // Return to initial location
                 this.currentLocation = 'video1';
@@ -2125,69 +1924,8 @@ class PointAndClickGame {
                 
                 // Note: event listener flags are reset inside each handler automatically
                 
-                // Pause all videos to ensure clean state
-                this.assets.video2.pause();
-                this.assets.video3.pause();
-                this.assets.video4.pause();
-                this.assets.video5.pause();
-                this.assets.video6.pause();
-                this.assets.video7.pause();
-                this.assets.video8.pause();
-                this.assets.video9.pause();
-                this.assets.video10.pause();
-                this.assets.video11.pause();
-                this.assets.video12.pause();
-                this.assets.video13.pause();
-                this.assets.video14.pause();
-                this.assets.video15.pause();
-                this.assets.video16.pause();
-                this.assets.video17.pause();
-                this.assets.video18.pause();
-                this.assets.video19.pause();
-                this.assets.video20.pause();
-                this.assets.video22.pause();
-                this.assets.video23.pause();
-                this.assets.video24.pause();
-                this.assets.video25.pause();
-                this.assets.video26.pause();
-                this.assets.video27.pause();
-                this.assets.video28.pause();
-                this.assets.video29.pause();
-                this.assets.video31.pause();
-                this.assets.video30.pause();
-                this.assets.video32.pause();
-                
-                // Reset currentTime for all videos
-                this.assets.video2.currentTime = 0;
-                this.assets.video3.currentTime = 0;
-                this.assets.video4.currentTime = 0;
-                this.assets.video5.currentTime = 0;
-                this.assets.video6.currentTime = 0;
-                this.assets.video7.currentTime = 0;
-                this.assets.video8.currentTime = 0;
-                this.assets.video9.currentTime = 0;
-                this.assets.video10.currentTime = 0;
-                this.assets.video11.currentTime = 0;
-                this.assets.video12.currentTime = 0;
-                this.assets.video13.currentTime = 0;
-                this.assets.video14.currentTime = 0;
-                this.assets.video15.currentTime = 0;
-                this.assets.video16.currentTime = 0;
-                this.assets.video17.currentTime = 0;
-                this.assets.video18.currentTime = 0;
-                this.assets.video19.currentTime = 0;
-                this.assets.video20.currentTime = 0;
-                this.assets.video22.currentTime = 0;
-                this.assets.video23.currentTime = 0;
-                this.assets.video24.currentTime = 0;
-                this.assets.video25.currentTime = 0;
-                this.assets.video26.currentTime = 0;
-                this.assets.video27.currentTime = 0;
-                this.assets.video28.currentTime = 0;
-                this.assets.video29.currentTime = 0;
-                this.assets.video31.currentTime = 0;
-                this.assets.video30.currentTime = 0;
-                this.assets.video32.currentTime = 0;
+                this.pauseLoadedVideos('video1');
+                this.resetLoadedVideosTime('video1');
                 
                 // Return to initial location
                 this.currentLocation = 'video1';
@@ -2368,71 +2106,8 @@ class PointAndClickGame {
                 
                 // Note: event listener flags are reset inside each handler automatically
                 
-                // Pause all videos to ensure clean state
-                this.assets.video2.pause();
-                this.assets.video3.pause();
-                this.assets.video4.pause();
-                this.assets.video5.pause();
-                this.assets.video6.pause();
-                this.assets.video7.pause();
-                this.assets.video8.pause();
-                this.assets.video9.pause();
-                this.assets.video10.pause();
-                this.assets.video11.pause();
-                this.assets.video12.pause();
-                this.assets.video13.pause();
-                this.assets.video14.pause();
-                this.assets.video15.pause();
-                this.assets.video16.pause();
-                this.assets.video17.pause();
-                this.assets.video18.pause();
-                this.assets.video19.pause();
-                this.assets.video20.pause();
-                this.assets.video21.pause();
-                this.assets.video22.pause();
-                this.assets.video23.pause();
-                this.assets.video24.pause();
-                this.assets.video25.pause();
-                this.assets.video26.pause();
-                this.assets.video27.pause();
-                this.assets.video28.pause();
-                this.assets.video29.pause();
-                this.assets.video31.pause();
-                this.assets.video30.pause();
-                this.assets.video32.pause();
-                
-                // Reset currentTime for all videos
-                this.assets.video2.currentTime = 0;
-                this.assets.video3.currentTime = 0;
-                this.assets.video4.currentTime = 0;
-                this.assets.video5.currentTime = 0;
-                this.assets.video6.currentTime = 0;
-                this.assets.video7.currentTime = 0;
-                this.assets.video8.currentTime = 0;
-                this.assets.video9.currentTime = 0;
-                this.assets.video10.currentTime = 0;
-                this.assets.video11.currentTime = 0;
-                this.assets.video12.currentTime = 0;
-                this.assets.video13.currentTime = 0;
-                this.assets.video14.currentTime = 0;
-                this.assets.video15.currentTime = 0;
-                this.assets.video16.currentTime = 0;
-                this.assets.video17.currentTime = 0;
-                this.assets.video18.currentTime = 0;
-                this.assets.video19.currentTime = 0;
-                this.assets.video20.currentTime = 0;
-                this.assets.video21.currentTime = 0;
-                this.assets.video22.currentTime = 0;
-                this.assets.video23.currentTime = 0;
-                this.assets.video24.currentTime = 0;
-                this.assets.video25.currentTime = 0;
-                this.assets.video26.currentTime = 0;
-                this.assets.video27.currentTime = 0;
-                this.assets.video28.currentTime = 0;
-                this.assets.video29.currentTime = 0;
-                this.assets.video31.currentTime = 0;
-                this.assets.video30.currentTime = 0;
-                this.assets.video32.currentTime = 0;
+                this.pauseLoadedVideos('video1');
+                this.resetLoadedVideosTime('video1');
                 
                 // Return to initial location
                 this.currentLocation = 'video1';
@@ -2530,71 +2205,8 @@ class PointAndClickGame {
                 
                 // Note: event listener flags are reset inside each handler automatically
                 
-                // Pause all videos to ensure clean state
-                this.assets.video2.pause();
-                this.assets.video3.pause();
-                this.assets.video4.pause();
-                this.assets.video5.pause();
-                this.assets.video6.pause();
-                this.assets.video7.pause();
-                this.assets.video8.pause();
-                this.assets.video9.pause();
-                this.assets.video10.pause();
-                this.assets.video11.pause();
-                this.assets.video12.pause();
-                this.assets.video13.pause();
-                this.assets.video14.pause();
-                this.assets.video15.pause();
-                this.assets.video16.pause();
-                this.assets.video17.pause();
-                this.assets.video18.pause();
-                this.assets.video19.pause();
-                this.assets.video20.pause();
-                this.assets.video21.pause();
-                this.assets.video22.pause();
-                this.assets.video23.pause();
-                this.assets.video24.pause();
-                this.assets.video25.pause();
-                this.assets.video26.pause();
-                this.assets.video27.pause();
-                this.assets.video28.pause();
-                this.assets.video29.pause();
-                this.assets.video31.pause();
-                this.assets.video30.pause();
-                this.assets.video32.pause();
-                
-                // Reset currentTime for all videos
-                this.assets.video2.currentTime = 0;
-                this.assets.video3.currentTime = 0;
-                this.assets.video4.currentTime = 0;
-                this.assets.video5.currentTime = 0;
-                this.assets.video6.currentTime = 0;
-                this.assets.video7.currentTime = 0;
-                this.assets.video8.currentTime = 0;
-                this.assets.video9.currentTime = 0;
-                this.assets.video10.currentTime = 0;
-                this.assets.video11.currentTime = 0;
-                this.assets.video12.currentTime = 0;
-                this.assets.video13.currentTime = 0;
-                this.assets.video14.currentTime = 0;
-                this.assets.video15.currentTime = 0;
-                this.assets.video16.currentTime = 0;
-                this.assets.video17.currentTime = 0;
-                this.assets.video18.currentTime = 0;
-                this.assets.video19.currentTime = 0;
-                this.assets.video20.currentTime = 0;
-                this.assets.video21.currentTime = 0;
-                this.assets.video22.currentTime = 0;
-                this.assets.video23.currentTime = 0;
-                this.assets.video24.currentTime = 0;
-                this.assets.video25.currentTime = 0;
-                this.assets.video26.currentTime = 0;
-                this.assets.video27.currentTime = 0;
-                this.assets.video28.currentTime = 0;
-                this.assets.video29.currentTime = 0;
-                this.assets.video31.currentTime = 0;
-                this.assets.video30.currentTime = 0;
-                this.assets.video32.currentTime = 0;
+                this.pauseLoadedVideos('video1');
+                this.resetLoadedVideosTime('video1');
                 
                 // Return to initial location
                 this.currentLocation = 'video1';
@@ -2950,5 +2562,5 @@ class PointAndClickGame {
 
 // Start game after DOM loads
 document.addEventListener('DOMContentLoaded', () => {
-    new PointAndClickGame();
+    new glexperience();
 });
