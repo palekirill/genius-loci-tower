@@ -1,6 +1,6 @@
-# genius_loci_tower (demo)
+# genius_loci_tower
 
-short interactive point-and-click experience built with html5 canvas and javascript, created entirely with the help of AI.
+short interactive point-and-click experience built with html5 canvas and javascript, created with love and entirely with the help of ai — where the genius loci story began.
 
 ## features
 
@@ -8,13 +8,20 @@ short interactive point-and-click experience built with html5 canvas and javascr
 - best viewed in google chrome
 - first-person interactive point-and-click navigation
 
+## play
+
+[https://palekirill.github.io/genius-loci-tower/](https://palekirill.github.io/genius-loci-tower/)
+
 ## instructions
 
-- enter the link https://palekirill.github.io/genius-loci-tower/
 - click on interactive parts
 - explore branching paths
 - repeat
 
+## onchain
+
+this is an on-chain edition. all media is permanently archived on [arweave](https://arweave.net/1FuVEIRmDnXaCKOY3N8U_BiXMmzRrdntGqKXp2TpzMQ/genius_loci_tower/index.html). owned by claire silver.
+
 ## note
 
-please report any issues at https://x.com/palekirill
+if you encounter an artifact or a glitch, please report at [https://x.com/palekirill](https://x.com/palekirill)
